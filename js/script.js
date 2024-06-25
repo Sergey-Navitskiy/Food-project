@@ -105,10 +105,8 @@ window.addEventListener("DOMContentLoaded", () => {
     clearInterval(modalTimerId);
   }
 
-
-
   modal.addEventListener("click", (e) => {
-    if (e.target === modal || e.target.getAttribute('data-close') == '') {
+    if (e.target === modal || e.target.getAttribute("data-close") == "") {
       closeModal();
     }
   });
@@ -174,117 +172,137 @@ window.addEventListener("DOMContentLoaded", () => {
       this.parent.append(element);
     }
   }
-  new MenuCard(
-    "img/tabs/vegy.jpg",
-    "vegy",
-    "'Меню Фитнес'",
-    'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
-    9,
-    ".menu .container"
-  ).render();
 
-  new MenuCard(
-    "img/tabs/elite.jpg",
-    "elite",
-    "Меню “Премиум”",
-    "В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!",
-    14,
-    ".menu .container"
-  ).render();
 
-  new MenuCard(
-    "img/tabs/post.jpg",
-    "post",
-    'Меню "Постное"',
-    "Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.",
-    21,
-    ".menu .container"
-  ).render();
+  const getResource = async (url, data) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Could not fetch ${url}, status: ${res.status}`)
+    }
+    return await res.json();
+  };
+
+  getResource('http://localhost:3000/menu')
+    .then(data => {
+      data.forEach(({img, altimg, title, descr, price}) => {
+        new MenuCard(img, altimg, title, descr, price, '.menu .container').render();
+      })
+    }) 
+
+  // new MenuCard(
+  //   "img/tabs/vegy.jpg",
+  //   "vegy",
+  //   "'Меню Фитнес'",
+  //   'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
+  //   9,
+  //   ".menu .container"
+  // ).render();
+
+  // new MenuCard(
+  //   "img/tabs/elite.jpg",
+  //   "elite",
+  //   "Меню “Премиум”",
+  //   "В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!",
+  //   14,
+  //   ".menu .container"
+  // ).render();
+
+  // new MenuCard(
+  //   "img/tabs/post.jpg",
+  //   "post",
+  //   'Меню "Постное"',
+  //   "Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.",
+  //   21,
+  //   ".menu .container"
+  // ).render();
 
   // forms
 
   // Forms
 
-  const forms = document.querySelectorAll('form');
+  const forms = document.querySelectorAll("form");
   const message = {
-      loading: 'img/form/spinner.svg',
-      success: 'Спасибо! Скоро мы с вами свяжемся',
-      failure: 'Что-то пошло не так...'
+    loading: "img/form/spinner.svg",
+    success: "Спасибо! Скоро мы с вами свяжемся",
+    failure: "Что-то пошло не так...",
   };
 
-  forms.forEach(item => {
-      postData(item);
+  forms.forEach((item) => {
+    BindPostData(item);
   });
 
-  function postData(form) {
-      form.addEventListener('submit', (e) => {
-          e.preventDefault();
+  const postData = async (url, data) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: data
+    });
+    return await res.json();
+  };
 
-          let statusMessage = document.createElement('img');
-          statusMessage.src = message.loading;
-          statusMessage.style.cssText = `
+  function BindPostData(form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      let statusMessage = document.createElement("img");
+      statusMessage.src = message.loading;
+      statusMessage.style.cssText = `
               display: block;
               margin: 0 auto;
           `;
-          form.insertAdjacentElement('afterend', statusMessage);
-      
-          const formData = new FormData(form);
+      form.insertAdjacentElement("afterend", statusMessage);
 
-          const object = {};
-          formData.forEach(function(value, key){
-              object[key] = value;
-          });
+      const formData = new FormData(form);
 
-          fetch('server.php', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(object)
-          }).then(data => data.text())
-          .then(data => {
-              console.log(data);
-              showThanksModal(message.success);
-              statusMessage.remove();
-          }).catch(() => {
-              showThanksModal(message.failure);
-          }).finally(() => {
-              form.reset();
-          });
-      });
+      const json = JSON.stringify(Object.fromEntries(formData.entries()))
+
+      postData('http://localhost:3000/requests', json)
+        .then((data) => {
+          console.log(data);
+          showThanksModal(message.success);
+          statusMessage.remove();
+        })
+        .catch(() => {
+          showThanksModal(message.failure);
+        })
+        .finally(() => {
+          form.reset();
+        });
+    });
   }
 
   function showThanksModal(message) {
-      const prevModalDialog = document.querySelector('.modal__dialog');
+    const prevModalDialog = document.querySelector(".modal__dialog");
 
-      prevModalDialog.classList.add('hide');
-      openModal();
+    prevModalDialog.classList.add("hide");
+    openModal();
 
-      const thanksModal = document.createElement('div');
-      thanksModal.classList.add('modal__dialog');
-      thanksModal.innerHTML = `
+    const thanksModal = document.createElement("div");
+    thanksModal.classList.add("modal__dialog");
+    thanksModal.innerHTML = `
           <div class="modal__content">
               <div class="modal__close" data-close>×</div>
               <div class="modal__title">${message}</div>
           </div>
       `;
-      document.querySelector('.modal').append(thanksModal);
-      setTimeout(() => {
-          thanksModal.remove();
-          prevModalDialog.classList.add('show');
-          prevModalDialog.classList.remove('hide');
-          closeModal();
-      }, 4000);
+    document.querySelector(".modal").append(thanksModal);
+    setTimeout(() => {
+      thanksModal.remove();
+      prevModalDialog.classList.add("show");
+      prevModalDialog.classList.remove("hide");
+      closeModal();
+    }, 4000);
   }
 
-  fetch('http://localhost:3000/menu')
+  fetch("http://localhost:3000/menu")
     // .then(data => data.json())
-    .then((data,dsds) => {
-       return data.json
+    .then((data, dsds) => {
+      return data.json;
     })
-    .then(res => console.log(res))
+    .then((res) => console.log(res));
 });
-
 
 // Forms
 
